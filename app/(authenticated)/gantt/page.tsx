@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent, Select, Spinner, EmptyState } from "@/components/ui";
-import { getStatusColor, getPriorityColor } from "@/lib/utils";
 import type { Project, Task } from "@/types/project-types";
 
 export default function GanttPage() {
@@ -39,7 +38,6 @@ export default function GanttPage() {
 
   const selectedProjectData = projects.find((p) => p.id === selectedProject);
 
-  // Calculate timeline
   const getTimelineRange = () => {
     if (!selectedProjectData) return { start: new Date(), end: new Date(), days: 30 };
     const start = new Date(selectedProjectData.startDate);
@@ -71,7 +69,6 @@ export default function GanttPage() {
     };
   };
 
-  // Generate month labels
   const getMonthLabels = () => {
     const labels: { label: string; left: number }[] = [];
     const current = new Date(timelineStart);
@@ -94,12 +91,28 @@ export default function GanttPage() {
     ...projects.map((p) => ({ value: p.id, label: p.name })),
   ];
 
+  const statusColors: Record<string, string> = {
+    TODO: "bg-navy-400",
+    IN_PROGRESS: "bg-blue-500",
+    IN_REVIEW: "bg-purple-500",
+    DONE: "bg-green-500",
+    BLOCKED: "bg-red-500",
+  };
+
+  const statusDots: Record<string, string> = {
+    TODO: "bg-navy-400",
+    IN_PROGRESS: "bg-blue-500",
+    IN_REVIEW: "bg-purple-500",
+    DONE: "bg-green-500",
+    BLOCKED: "bg-red-500",
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gantt Chart</h1>
-          <p className="text-gray-500 mt-1">Visualize project timeline and task schedules</p>
+          <h1 className="text-2xl font-bold text-navy-900">Gantt Chart</h1>
+          <p className="text-sm text-navy-500 mt-0.5">Visualize project timeline and task schedules</p>
         </div>
         <Select
           options={projectOptions}
@@ -109,9 +122,21 @@ export default function GanttPage() {
         />
       </div>
 
+      {/* Legend */}
+      {selectedProject && (
+        <div className="flex items-center gap-4 flex-wrap">
+          {Object.entries({ TODO: "To Do", IN_PROGRESS: "In Progress", IN_REVIEW: "In Review", DONE: "Done", BLOCKED: "Blocked" }).map(([key, label]) => (
+            <div key={key} className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 rounded ${statusDots[key]}`} />
+              <span className="text-[11px] font-semibold text-navy-500">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Spinner />
+          <Spinner className="h-8 w-8" />
         </div>
       ) : !selectedProject ? (
         <EmptyState title="Select a project" description="Choose a project to view its Gantt chart" />
@@ -122,11 +147,14 @@ export default function GanttPage() {
           <CardContent className="p-0 overflow-x-auto">
             <div className="min-w-[800px]" ref={containerRef}>
               {/* Timeline header */}
-              <div className="relative h-10 border-b bg-gray-50">
+              <div className="relative h-10 border-b border-navy-100 bg-navy-700">
+                <div className="absolute left-0 top-0 w-[250px] h-full flex items-center px-4">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Task Name</span>
+                </div>
                 {getMonthLabels().map((label, i) => (
                   <div
                     key={i}
-                    className="absolute top-0 h-full flex items-center text-xs text-gray-500 font-medium border-l border-gray-200 pl-2"
+                    className="absolute top-0 h-full flex items-center text-[11px] text-navy-200 font-bold border-l border-navy-600 pl-2"
                     style={{ left: `calc(250px + ${label.left}% * (100% - 250px) / 100)` }}
                   >
                     {label.label}
@@ -136,49 +164,49 @@ export default function GanttPage() {
 
               {/* Project bar */}
               {selectedProjectData && (
-                <div className="relative flex items-center h-12 border-b bg-blue-50">
-                  <div className="w-[250px] flex-shrink-0 px-4 text-sm font-semibold text-gray-900 truncate">
+                <div className="relative flex items-center h-12 border-b border-navy-100 bg-navy-50">
+                  <div className="w-[250px] flex-shrink-0 px-4 text-xs font-bold text-navy-800 truncate uppercase tracking-wide">
                     {selectedProjectData.name}
                   </div>
-                  <div className="flex-1 relative h-6 mx-2">
+                  <div className="flex-1 relative h-7 mx-2">
                     <div
-                      className="absolute h-full rounded-full bg-blue-500 opacity-30"
+                      className="absolute h-full rounded bg-navy-200"
                       style={{ left: "0%", width: "100%" }}
                     />
+                    <div
+                      className="absolute h-full rounded bg-navy-500"
+                      style={{ left: "0%", width: `${selectedProjectData.progress}%` }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-white">{selectedProjectData.progress}%</span>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Task rows */}
-              {tasks.map((task) => {
+              {tasks.map((task, idx) => {
                 const bar = getBarPosition(task.startDate, task.dueDate);
-                const statusColors: Record<string, string> = {
-                  TODO: "bg-slate-400",
-                  IN_PROGRESS: "bg-yellow-500",
-                  IN_REVIEW: "bg-purple-500",
-                  DONE: "bg-green-500",
-                  BLOCKED: "bg-red-500",
-                };
                 return (
                   <div
                     key={task.id}
-                    className="relative flex items-center h-10 border-b hover:bg-gray-50 group"
+                    className={`relative flex items-center h-10 border-b border-navy-50 hover:bg-navy-50/50 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-navy-50/30"}`}
                   >
                     <div className="w-[250px] flex-shrink-0 px-4 flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${statusColors[task.status]}`} />
-                      <span className="text-sm text-gray-700 truncate">{task.title}</span>
+                      <div className={`h-2 w-2 rounded-full ${statusDots[task.status]}`} />
+                      <span className="text-xs font-semibold text-navy-700 truncate">{task.title}</span>
                     </div>
-                    <div className="flex-1 relative h-6 mx-2">
+                    <div className="flex-1 relative h-7 mx-2">
                       {bar.width > 0 && (
                         <div
-                          className={`absolute h-full rounded ${statusColors[task.status]} opacity-80 flex items-center justify-center`}
+                          className={`absolute h-full rounded-md ${statusColors[task.status]} flex items-center justify-center shadow-sm`}
                           style={{
                             left: `${bar.left}%`,
                             width: `${Math.max(bar.width, 2)}%`,
                           }}
                         >
                           {bar.width > 8 && (
-                            <span className="text-[10px] text-white font-medium truncate px-1">
+                            <span className="text-[10px] text-white font-bold truncate px-1.5">
                               {task.title}
                             </span>
                           )}
@@ -199,10 +227,11 @@ export default function GanttPage() {
                 if (todayPercent >= 0 && todayPercent <= 100) {
                   return (
                     <div
-                      className="absolute top-0 bottom-0 w-px bg-red-500 z-10 pointer-events-none"
+                      className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none"
                       style={{ left: `calc(250px + ${todayPercent}% * (100% - 250px) / 100)` }}
                     >
-                      <div className="absolute -top-1 -left-2 w-4 h-1 bg-red-500 rounded" />
+                      <div className="absolute -top-0.5 -left-1.5 w-4 h-1.5 bg-red-500 rounded-full" />
+                      <div className="absolute top-2 -left-3 text-[9px] font-bold text-red-500 whitespace-nowrap">TODAY</div>
                     </div>
                   );
                 }

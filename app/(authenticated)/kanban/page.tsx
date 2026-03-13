@@ -3,15 +3,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Card, Button, Badge, Select, Spinner, Avatar, EmptyState } from "@/components/ui";
 import { GripVertical, Plus } from "lucide-react";
-import { getPriorityColor, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import type { Task, TaskStatus } from "@/types/project-types";
 
-const columns: { id: TaskStatus; title: string; color: string }[] = [
-  { id: "TODO", title: "To Do", color: "border-t-slate-400" },
-  { id: "IN_PROGRESS", title: "In Progress", color: "border-t-yellow-400" },
-  { id: "IN_REVIEW", title: "In Review", color: "border-t-purple-400" },
-  { id: "DONE", title: "Done", color: "border-t-green-400" },
-  { id: "BLOCKED", title: "Blocked", color: "border-t-red-400" },
+const columns: { id: TaskStatus; title: string; color: string; dot: string }[] = [
+  { id: "TODO", title: "To Do", color: "border-t-navy-400", dot: "bg-navy-400" },
+  { id: "IN_PROGRESS", title: "In Progress", color: "border-t-blue-500", dot: "bg-blue-500" },
+  { id: "IN_REVIEW", title: "In Review", color: "border-t-purple-500", dot: "bg-purple-500" },
+  { id: "DONE", title: "Done", color: "border-t-green-500", dot: "bg-green-500" },
+  { id: "BLOCKED", title: "Blocked", color: "border-t-red-500", dot: "bg-red-500" },
 ];
 
 export default function KanbanPage() {
@@ -49,7 +49,6 @@ export default function KanbanPage() {
   }, [fetchTasks]);
 
   const handleDrop = async (taskId: string, newStatus: TaskStatus) => {
-    // Optimistic update
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     );
@@ -80,13 +79,27 @@ export default function KanbanPage() {
     ...projects.map((p) => ({ value: p.id, label: p.name })),
   ];
 
+  const priorityStripe: Record<string, string> = {
+    CRITICAL: "border-l-4 border-l-red-500",
+    HIGH: "border-l-4 border-l-amber-500",
+    MEDIUM: "border-l-4 border-l-blue-500",
+    LOW: "border-l-4 border-l-navy-300",
+  };
+
+  const priorityDot: Record<string, string> = {
+    LOW: "bg-navy-300",
+    MEDIUM: "bg-blue-500",
+    HIGH: "bg-amber-500",
+    CRITICAL: "bg-red-500",
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kanban Board</h1>
-          <p className="text-gray-500 mt-1">Drag and drop tasks between columns</p>
+          <h1 className="text-2xl font-bold text-navy-900">Kanban Board</h1>
+          <p className="text-sm text-navy-500 mt-0.5">Drag and drop tasks between columns</p>
         </div>
         <Select
           options={projectOptions}
@@ -98,7 +111,7 @@ export default function KanbanPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Spinner />
+          <Spinner className="h-8 w-8" />
         </div>
       ) : tasks.length === 0 ? (
         <EmptyState title="No tasks found" description="Create tasks in your projects to see them on the board" />
@@ -109,15 +122,18 @@ export default function KanbanPage() {
             return (
               <div
                 key={column.id}
-                className={`flex-shrink-0 w-72 bg-gray-100 rounded-xl border-t-4 ${column.color}`}
+                className={`flex-shrink-0 w-72 bg-navy-50/70 rounded-xl border-t-4 ${column.color}`}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDropEvent(e, column.id)}
               >
                 <div className="px-4 py-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700">
-                    {column.title}
-                  </h3>
-                  <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 text-xs font-medium text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${column.dot}`} />
+                    <h3 className="text-xs font-bold text-navy-800 uppercase tracking-wider">
+                      {column.title}
+                    </h3>
+                  </div>
+                  <span className="flex items-center justify-center h-6 w-6 rounded-full bg-navy-200 text-[11px] font-bold text-navy-700">
                     {columnTasks.length}
                   </span>
                 </div>
@@ -127,28 +143,30 @@ export default function KanbanPage() {
                       key={task.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task.id)}
-                      className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                      className={`bg-white rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${priorityStripe[task.priority] || ""}`}
                     >
                       <div className="flex items-start gap-2">
-                        <GripVertical className="h-4 w-4 text-gray-300 mt-0.5 flex-shrink-0" />
+                        <GripVertical className="h-4 w-4 text-navy-200 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{task.title}</p>
+                          <p className="text-sm font-semibold text-navy-800">{task.title}</p>
                           {task.project && (
-                            <p className="text-xs text-gray-500 mt-0.5">{task.project.name}</p>
+                            <p className="text-[11px] text-navy-400 mt-0.5">{task.project.name}</p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
-                            <Badge className={getPriorityColor(task.priority)}>
-                              {task.priority}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <div className={`w-1.5 h-1.5 rounded-full ${priorityDot[task.priority] || "bg-navy-300"}`} />
+                              <span className="text-[10px] font-bold text-navy-500">{task.priority}</span>
+                            </div>
                             {task.dueDate && (
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-[10px] text-navy-400">
                                 {formatDate(task.dueDate)}
                               </span>
                             )}
                           </div>
                           {task.assignee && (
-                            <div className="mt-2">
+                            <div className="mt-2 flex items-center gap-1.5">
                               <Avatar name={task.assignee.name} src={task.assignee.avatar} size="sm" />
+                              <span className="text-[10px] font-medium text-navy-500">{task.assignee.name}</span>
                             </div>
                           )}
                         </div>

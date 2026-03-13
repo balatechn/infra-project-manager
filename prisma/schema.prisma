@@ -244,3 +244,60 @@ model ActivityLog {
   @@index([projectId])
   @@index([userId])
 }
+
+// ─── Project Templates (Admin) ──────────────────────────────
+
+model ProjectTemplate {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  category    ProjectCategory
+  isActive    Boolean         @default(true)
+  defaultTasks TemplateTask[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model TemplateTask {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  order       Int      @default(0)
+  daysOffset  Int      @default(0)
+  duration    Int      @default(1)
+  templateId  String
+  template    ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+// ─── Masters (Admin) ────────────────────────────────────────
+
+model MasterLocation {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  city      String?
+  state     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model MasterClient {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  contactName String?
+  email       String?
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model MasterCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  icon      String?
+  color     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

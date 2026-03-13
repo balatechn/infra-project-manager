@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Card, CardContent, Button, Input, Select, Badge, Progress, Modal, EmptyState, Spinner } from "@/components/ui";
-import { Plus, Search, Filter } from "lucide-react";
+import { Card, CardContent, CardHeader, Button, Input, Select, Badge, Progress, Modal, EmptyState, Spinner } from "@/components/ui";
+import { Plus, Search, Filter, FolderKanban, MapPin, Calendar, DollarSign } from "lucide-react";
 import { formatDate, formatCurrency, getStatusColor, getPriorityColor, getCategoryLabel } from "@/lib/utils";
 import type { Project, ProjectCategory, ProjectStatus, Priority } from "@/types/project-types";
 
@@ -44,6 +44,7 @@ export default function ProjectsPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -91,25 +92,52 @@ export default function ProjectsPage() {
     setCreating(false);
   };
 
+  const priorityDot: Record<string, string> = {
+    LOW: "bg-navy-300",
+    MEDIUM: "bg-blue-500",
+    HIGH: "bg-amber-500",
+    CRITICAL: "bg-red-500",
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-500 mt-1">Manage IT infrastructure projects</p>
+          <h1 className="text-2xl font-bold text-navy-900">Projects</h1>
+          <p className="text-sm text-navy-500 mt-0.5">Manage IT infrastructure projects</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-navy-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                viewMode === "table" ? "bg-white text-navy-800 shadow-sm" : "text-navy-500 hover:text-navy-700"
+              }`}
+            >
+              Table
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                viewMode === "grid" ? "bg-white text-navy-800 shadow-sm" : "text-navy-500 hover:text-navy-700"
+              }`}
+            >
+              Grid
+            </button>
+          </div>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="flex flex-col sm:flex-row gap-3 py-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-navy-400" />
             <Input
               placeholder="Search projects..."
               value={search}
@@ -132,10 +160,10 @@ export default function ProjectsPage() {
         </CardContent>
       </Card>
 
-      {/* Project Grid */}
+      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <Spinner />
+          <Spinner className="h-8 w-8" />
         </div>
       ) : projects.length === 0 ? (
         <EmptyState
@@ -148,39 +176,127 @@ export default function ProjectsPage() {
             </Button>
           }
         />
+      ) : viewMode === "table" ? (
+        /* DATA TABLE VIEW */
+        <Card>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-navy-700 text-white">
+                  <th className="px-4 py-3 text-left font-bold text-xs">Project Name</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Client</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Category</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Status</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Priority</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Progress</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Budget</th>
+                  <th className="px-4 py-3 text-left font-bold text-xs">Timeline</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((project) => {
+                  const statusBadge: Record<string, { bg: string; text: string }> = {
+                    PLANNING: { bg: "bg-navy-100", text: "text-navy-700" },
+                    IN_PROGRESS: { bg: "bg-blue-50", text: "text-blue-700" },
+                    ON_HOLD: { bg: "bg-amber-50", text: "text-amber-700" },
+                    COMPLETED: { bg: "bg-green-50", text: "text-green-700" },
+                    CANCELLED: { bg: "bg-red-50", text: "text-red-700" },
+                  };
+                  const sb = statusBadge[project.status] || statusBadge.PLANNING;
+                  return (
+                    <tr key={project.id} className="border-b border-navy-50 hover:bg-navy-50/50 transition-colors">
+                      <td className="px-4 py-3">
+                        <Link href={`/projects/${project.id}`} className="font-semibold text-navy-800 hover:text-blue-600 transition-colors">
+                          {project.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-navy-600 text-xs">{project.client}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-medium text-navy-500">{getCategoryLabel(project.category)}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${sb.bg} ${sb.text}`}>
+                          {project.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full ${priorityDot[project.priority] || "bg-navy-300"}`} />
+                          <span className="text-xs font-medium text-navy-600">{project.priority}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <div className="flex-1 h-2 bg-navy-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                project.progress >= 80 ? "bg-green-500" : project.progress >= 40 ? "bg-blue-500" : "bg-amber-500"
+                              }`}
+                              style={{ width: `${project.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-navy-700 w-8 text-right">{project.progress}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-semibold text-navy-700">{formatCurrency(project.budget)}</td>
+                      <td className="px-4 py-3 text-[11px] text-navy-500">
+                        {formatDate(project.startDate)} – {formatDate(project.endDate)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       ) : (
+        /* GRID VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {projects.map((project) => (
             <Link key={project.id} href={`/projects/${project.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <Card className="hover:shadow-lg transition-all cursor-pointer h-full border-t-4 border-t-navy-600">
                 <CardContent className="py-5 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{project.name}</h3>
-                      <p className="text-sm text-gray-500">{project.client}</p>
+                      <h3 className="font-bold text-navy-900 truncate">{project.name}</h3>
+                      <p className="text-xs text-navy-500 mt-0.5">{project.client}</p>
                     </div>
-                    <Badge className={getStatusColor(project.status)}>
+                    <Badge variant={project.status === "COMPLETED" ? "success" : project.status === "ON_HOLD" ? "warning" : project.status === "CANCELLED" ? "danger" : "info"}>
                       {project.status.replace(/_/g, " ")}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Filter className="h-3 w-3" />
-                    <span>{getCategoryLabel(project.category)}</span>
-                    <span>•</span>
-                    <span>{project.location}</span>
+                  <div className="flex items-center gap-3 text-xs text-navy-500">
+                    <span className="flex items-center gap-1"><Filter className="h-3 w-3" />{getCategoryLabel(project.category)}</span>
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{project.location}</span>
                   </div>
 
-                  <Progress value={project.progress} showLabel />
-
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
-                    <Badge className={getPriorityColor(project.priority)}>{project.priority}</Badge>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-navy-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          project.progress >= 80 ? "bg-green-500" : project.progress >= 40 ? "bg-blue-500" : "bg-amber-500"
+                        }`}
+                        style={{ width: `${project.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-navy-700">{project.progress}%</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Budget</span>
-                    <span className="font-medium">{formatCurrency(project.budget)}</span>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-navy-100">
+                    <span className="text-navy-500 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(project.startDate)} - {formatDate(project.endDate)}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${priorityDot[project.priority] || "bg-navy-300"}`} />
+                      <span className="font-semibold text-navy-600">{project.priority}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-navy-500 flex items-center gap-1"><DollarSign className="h-3 w-3" />Budget</span>
+                    <span className="font-bold text-navy-800">{formatCurrency(project.budget)}</span>
                   </div>
                 </CardContent>
               </Card>

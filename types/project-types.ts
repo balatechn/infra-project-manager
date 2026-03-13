@@ -153,3 +153,58 @@ export interface ActivityLog {
   projectId?: string | null;
   createdAt: string;
 }
+
+// ─── Admin: Project Templates ───────────────────────────────
+
+export interface TemplateTask {
+  id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  daysOffset: number;
+  duration: number;
+  templateId: string;
+}
+
+export interface ProjectTemplate {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: ProjectCategory;
+  isActive: boolean;
+  defaultTasks?: TemplateTask[];
+  createdAt: string;
+  updatedAt: string;
+  _count?: { defaultTasks: number };
+}
+
+// ─── Admin: Masters ─────────────────────────────────────────
+
+export interface MasterLocation {
+  id: string;
+  name: string;
+  city?: string | null;
+  state?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface MasterClient {
+  id: string;
+  name: string;
+  contactName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface MasterCategory {
+  id: string;
+  name: string;
+  code: string;
+  icon?: string | null;
+  color?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
