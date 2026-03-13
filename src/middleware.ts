@@ -5,11 +5,10 @@ import { getToken } from "next-auth/jwt"
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  const isLoginPage = pathname === "/login"
-  const isAuthApi = pathname.startsWith("/api/auth")
-  const isHealthApi = pathname.startsWith("/api/health")
+  // Skip API routes entirely
+  if (pathname.startsWith("/api")) return NextResponse.next()
 
-  if (isAuthApi || isHealthApi) return NextResponse.next()
+  const isLoginPage = pathname === "/login"
 
   const token = await getToken({ req, secret: process.env.AUTH_SECRET })
   const isLoggedIn = !!token
@@ -29,5 +28,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico|api/auth).*)"],
+  matcher: ["/((?!_next|favicon.ico).*)"],
 }
