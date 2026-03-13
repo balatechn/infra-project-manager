@@ -7,8 +7,9 @@ export async function middleware(req: NextRequest) {
 
   const isLoginPage = pathname === "/login"
   const isAuthApi = pathname.startsWith("/api/auth")
+  const isHealthApi = pathname.startsWith("/api/health")
 
-  if (isAuthApi) return NextResponse.next()
+  if (isAuthApi || isHealthApi) return NextResponse.next()
 
   const token = await getToken({ req, secret: process.env.AUTH_SECRET })
   const isLoggedIn = !!token
