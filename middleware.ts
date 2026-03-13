@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import { jwtVerify } from "jose";
 
 const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
@@ -33,20 +33,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const payload = verifyToken(token);
-  if (!payload) {
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret");
+    const { payload } = await jwtVerify(token, secret);
+
+    // Add user info to headers for API routes
+    const response = NextResponse.next();
+    response.headers.set("x-user-id", payload.userId as string);
+    response.headers.set("x-user-role", payload.role as string);
+    return response;
+  } catch {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
-
-  // Add user info to headers for API routes
-  const response = NextResponse.next();
-  response.headers.set("x-user-id", payload.userId);
-  response.headers.set("x-user-role", payload.role);
-
-  return response;
 }
 
 export const config = {
