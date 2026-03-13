@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Server, Eye, EyeOff, Loader2 } from "lucide-react"
+import { loginAction } from "./actions"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,23 +22,15 @@ export default function LoginPage() {
     setError("")
     setLoading(true)
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    const result = await loginAction(email, password)
 
     setLoading(false)
 
-    if (result?.error || result?.code) {
-      console.error("Login result:", JSON.stringify(result))
-      setError("Invalid email or password")
-    } else if (result?.ok) {
+    if (result.success) {
       router.push("/dashboard")
       router.refresh()
     } else {
-      console.error("Unexpected login result:", JSON.stringify(result))
-      setError("An unexpected error occurred")
+      setError(result.error || "Invalid email or password")
     }
   }
 
