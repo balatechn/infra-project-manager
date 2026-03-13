@@ -1,0 +1,249 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth ──────────────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  hashedPassword String
+  role           UserRole  @default(VIEWER)
+  avatar         String?
+  department     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sessions   Session[]
+  accounts   Account[]
+  activities Activity[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  ENGINEER
+  VIEWER
+}
+
+// ─── Project ───────────────────────────────────────────────────
+
+model Project {
+  id             String        @id @default(cuid())
+  name           String
+  description    String
+  client         String
+  projectManager String
+  projectType    ProjectType
+  status         ProjectStatus @default(PLANNING)
+  health         HealthStatus  @default(ON_TRACK)
+  startDate      DateTime
+  endDate        DateTime
+  progress       Float         @default(0)
+  budget         Float         @default(0)
+  spent          Float         @default(0)
+  priority       Priority      @default(MEDIUM)
+  tags           String[]
+  teamMembers    String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tasks      Task[]
+  issues     Issue[]
+  risks      Risk[]
+  activities Activity[]
+}
+
+enum ProjectType {
+  NETWORKING
+  CCTV
+  WIFI
+  DATA_CENTER
+  SERVER
+  INFRASTRUCTURE
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum HealthStatus {
+  ON_TRACK
+  AT_RISK
+  CRITICAL
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ─── Task ──────────────────────────────────────────────────────
+
+model Task {
+  id           String     @id @default(cuid())
+  projectId    String
+  parentId     String?
+  title        String
+  description  String
+  assignee     String
+  priority     Priority   @default(MEDIUM)
+  status       TaskStatus @default(BACKLOG)
+  startDate    DateTime
+  endDate      DateTime
+  progress     Float      @default(0)
+  type         TaskType   @default(TASK)
+  dependencies String[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   Task?   @relation("TaskChildren", fields: [parentId], references: [id])
+  children Task[]  @relation("TaskChildren")
+}
+
+enum TaskStatus {
+  BACKLOG
+  PLANNED
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+}
+
+enum TaskType {
+  MILESTONE
+  TASK
+  SUBTASK
+}
+
+// ─── Issue ─────────────────────────────────────────────────────
+
+model Issue {
+  id             String      @id @default(cuid())
+  projectId      String
+  title          String
+  description    String
+  severity       Severity    @default(MEDIUM)
+  status         IssueStatus @default(OPEN)
+  assignee       String
+  reportedBy     String
+  resolutionDate DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// ─── Risk ──────────────────────────────────────────────────────
+
+model Risk {
+  id             String     @id @default(cuid())
+  projectId      String
+  title          String
+  description    String
+  impact         ImpactLevel
+  likelihood     Likelihood
+  mitigationPlan String
+  owner          String
+  status         RiskStatus @default(OPEN)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Likelihood {
+  RARE
+  UNLIKELY
+  POSSIBLE
+  LIKELY
+  CERTAIN
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATED
+  CLOSED
+}
+
+// ─── Activity ──────────────────────────────────────────────────
+
+model Activity {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String?
+  user      String
+  action    String
+  target    String
+  timestamp DateTime @default(now())
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userRecord User?   @relation(fields: [userId], references: [id])
+}
