@@ -30,11 +30,15 @@ export default function LoginPage() {
 
     setLoading(false)
 
-    if (result?.error) {
+    if (result?.error || result?.code) {
+      console.error("Login result:", JSON.stringify(result))
       setError("Invalid email or password")
-    } else {
+    } else if (result?.ok) {
       router.push("/dashboard")
       router.refresh()
+    } else {
+      console.error("Unexpected login result:", JSON.stringify(result))
+      setError("An unexpected error occurred")
     }
   }
 
