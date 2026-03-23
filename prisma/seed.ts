@@ -9,7 +9,7 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  const hashedPassword = await hash("Natty@2026!1", 12)
+  const hashedPassword = await hash("Nzt@2025!!%%", 12)
 
   const admin = await prisma.user.upsert({
     where: { email: "bala.techn@gmail.com" },
